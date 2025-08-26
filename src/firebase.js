@@ -2,7 +2,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Use Vite env vars. Create .env.local with VITE_FIREBASE_* values.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -31,8 +30,6 @@ export async function ensureSignedIn(initialToken) {
         } catch (e) {
           console.error('Auth error', e);
         } finally {
-          // Wait for the state change to fire again
-          // If it doesn't quickly, resolve null to avoid deadlocks
           resolve(auth.currentUser ?? null);
         }
       }
