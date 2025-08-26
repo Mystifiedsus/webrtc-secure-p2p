@@ -91,21 +91,45 @@ export default function App() {
   }, [db, userId, isAuthReady]);
 
   async function setupPeerConnection(peerId) {
-    cryptoKeyPair.current = await crypto.subtle.generateKey({ name:'ECDH', namedCurve:'P-256' }, true, ['deriveBits']);
-    peerConnection.current = new RTCPeerConnection();
-    peerConnection.current.onicecandidate = async (ev) => {
-      if (ev.candidate) {
-        try {
-          await addDoc(collection(db, `artifacts/${APP_ID}/users/${peerId}/signaling`), { type:'candidate', candidate: ev.candidate.toJSON(), targetId: peerId, senderId: userId });
-        } catch (e) { console.error('ICE send error', e); }
-      }
-    };
-    peerConnection.current.ondatachannel = (ev) => { dataChannel.current = ev.channel; setupDataChannelEvents(); };
-    peerConnection.current.onconnectionstatechange = () => setConnectionStatus(peerConnection.current.connectionState);
+  cryptoKeyPair.current = await crypto.subtle.generateKey(
+    { name:'ECDH', namedCurve:'P-256' },
+    true,
+    ['deriveBits']
+  );
 
-    dataChannel.current = peerConnection.current.createDataChannel('fileTransfer');
-    setupDataChannelEvents();
-  }
+  peerConnection.current = new RTCPeerConnection({
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      {
+        urls: "turn:relay1.expressturn.com:3478",
+        username: "efree",
+        credential: "efree"
+      }
+    ]
+  });
+
+  peerConnection.current.onicecandidate = async (ev) => {
+    if (ev.candidate) {
+      try {
+        await addDoc(
+          collection(db, `artifacts/${APP_ID}/users/${peerId}/signaling`),
+          { type:'candidate', candidate: ev.candidate.toJSON(), targetId: peerId, senderId: userId }
+        );
+      } catch (e) { console.error('ICE send error', e); }
+    }
+  };
+
+  peerConnection.current.ondatachannel = (ev) => { 
+    dataChannel.current = ev.channel; 
+    setupDataChannelEvents(); 
+  };
+
+  peerConnection.current.onconnectionstatechange = () => 
+    setConnectionStatus(peerConnection.current.connectionState);
+
+  dataChannel.current = peerConnection.current.createDataChannel('fileTransfer');
+  setupDataChannelEvents();
+}
 
   function setupDataChannelEvents() {
     if (!dataChannel.current) return;
